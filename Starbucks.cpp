@@ -77,8 +77,6 @@ public:
         }
         reader.close();
 
-        //TODO: print turnaround times of all orders.
-
     }
 
 

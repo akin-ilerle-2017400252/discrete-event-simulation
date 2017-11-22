@@ -24,12 +24,12 @@ struct OrderByPrice
 
 class Starbucks{
 
-public:
+protected:
     vector<Employee> cashiers;
     vector<Employee> baristas;
     bool cashiersFull;
     bool baristasFull;
-    priority_queue<Order,vector<Order>> eventQueue;
+    priority_queue<Order,vector<Order>> eventQueue; //used to decide which event occurs first
     priority_queue<Order,vector<Order>,OrderByPrice> baristaQueue;
     queue<Order> cashierQueue;
     double simulationTime;
@@ -52,6 +52,7 @@ public:
         cashierQueueMaxLength=0;
         baristaQueueMaxLength=0;
     }
+
 public:
 
     Starbucks(const string &inputFile, const string &outputFile){
@@ -64,7 +65,7 @@ public:
         this->outputFile=outputFile;
         initialize(n);
 
-        for(int i=0;i<m;i++){
+        for(int i=0;i<m;i++){//reading input the input file and pushing every order into a priority queue
             double timeOfArrival,orderTime,brewTime,price;
             reader>>timeOfArrival;
             reader>>orderTime;
@@ -81,12 +82,12 @@ public:
     }
 
 
-    void simulate(){
+    virtual void simulate(){
 
         int n=cashiers.size();
         int m=turnarnoundTime.size();
 
-        while(!eventQueue.empty()){
+        while(!eventQueue.empty()){//pops and executes every event untill there are no events to execute
             Order event = eventQueue.top();
             eventQueue.pop();
             execute(event);
@@ -96,6 +97,13 @@ public:
 
     }
 
+protected:
+
+    virtual /**
+     * Writes the simulation results to output file
+     * @param n: number of cashiers
+     * @param m: number of orders
+     */
     void write(int n,int m){
         ofstream writer(outputFile);
 
@@ -119,8 +127,14 @@ public:
         writer.close();
     }
 
-    void execute(Order& order) { //TODO: create data types?? or use Order type all along
-        simulationTime=order.nextEventTime;
+    virtual /**
+     * Here the input order can be at three stages: not arrived, arrived but not ordered and both arrived and ordered
+     * this function identifies the stage and calls the necessary function
+     * @param order
+     */
+    void execute(Order& order) {
+        simulationTime=order.nextEventTime; //updating simulation time
+
         if(!order.arrived){
             arrive(order);
             return;
@@ -135,18 +149,20 @@ public:
 
     }
 
+
     void arrive(Order& order){
         order.arrived=true;
+
         if(cashiersFull){
             cashierQueue.push(order);
-            if(cashierQueueMaxLength<cashierQueue.size())
+            if(cashierQueueMaxLength<cashierQueue.size())//keep the record of the max queue length
                 cashierQueueMaxLength=cashierQueue.size();
         }
         else{
             auto it = cashiers.begin();
-            while(!it->free){ //TODO: keep free and not free employees seperately
+            while(!it->free){ //find the free cashiers
                 it++;
-                if(it==cashiers.end()){//if cashiers are full
+                if(it==cashiers.end()){//check if the cashiersFull flag is correct
                     cashiersFull=true;
                     cashierQueue.push(order);
                     if(cashierQueueMaxLength<cashierQueue.size())
@@ -157,19 +173,21 @@ public:
             order.nextEventTime=simulationTime+order.orderTime;
             it->free=false;
             it->totalWorkingTime+=order.orderTime;
-            order.cashierNo = it-cashiers.begin(); //TODO: check
+            order.cashierNo = it-cashiers.begin();
             eventQueue.push(order);
+
             if(it==cashiers.end()-1)
                 cashiersFull=true;
         }
     }
 
-    void order(Order& order){
-        if(cashierQueue.empty()){
+    virtual void order(Order& order){
+
+        if(cashierQueue.empty()){//this order has just passed a cashier. If the queue is empty, it is set to be idle.
             cashiersFull=false;
             cashiers[order.cashierNo].free=true;
         }
-        else{
+        else{//if the queue is not free, the first in the line is sent to the cashier
             Order firstInLine = cashierQueue.front();
             cashierQueue.pop();
             cashiers[order.cashierNo].totalWorkingTime+=firstInLine.orderTime;
@@ -187,21 +205,20 @@ public:
         }
         else{
             auto it = baristas.begin();
-            while(!it->free){
+            while(!it->free){   //find the free barista
                 it++;
-                if(it==baristas.end()){
+                if(it==baristas.end()){ //check the integrity of the baristasFull flag
                     baristasFull=true;
                     baristaQueue.push(order);
-                    if(baristaQueueMaxLength<baristaQueue.size())
+                    if(baristaQueueMaxLength<baristaQueue.size())   //keep the max of the line
                         baristaQueueMaxLength=baristaQueue.size();
                     return;
                 }
             }
             order.nextEventTime=simulationTime+order.brewTime;
-            //order.ordered=true;
             it->free=false;
             it->totalWorkingTime+=order.brewTime;
-            order.baristaNo = it-baristas.begin();//TODO: check
+            order.baristaNo = it-baristas.begin();
             eventQueue.push(order);
             if(it==baristas.end()-1)
                 baristasFull=true;
@@ -209,13 +226,13 @@ public:
 
     }
 
-    void exit(Order& order){
+    virtual void exit(Order& order){
 
-        if(baristaQueue.empty()){
+        if(baristaQueue.empty()){   //if there is no order in the queue, set the barista free
             baristasFull=false;
             baristas[order.baristaNo].free=true;
         }
-        else{//TODO: check
+        else{   //if not, take the first in line and assign it to the barista
             Order firstInLine = baristaQueue.top();
             baristaQueue.pop();
             baristas[order.baristaNo].totalWorkingTime+=firstInLine.brewTime;
@@ -226,6 +243,7 @@ public:
             eventQueue.push(firstInLine);
         }
 
+        //update the turnarount time of order:
         turnarnoundTime[order.orderNo]=simulationTime-turnarnoundTime[order.orderNo];
 
     }

@@ -30,10 +30,11 @@ struct Order{
     }
 
     bool compareByPrice(const Order& order)const {
-        if(price==order.price)
+
+        if(price==order.price)  //order by nextEventTime in case the prices are equal
             return nextEventTime>order.nextEventTime;
 
-        return price<order.price;
+        return price<order.price;//order by price unless the price is equal
     }
 
 

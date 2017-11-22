@@ -2,13 +2,16 @@
 
 class StarbucksModel2: public Starbucks{
 
-public:
-    vector<priority_queue<Order,vector<Order>,OrderByPrice>> baristaQueue;
+protected:
+    vector<priority_queue<Order,vector<Order>,OrderByPrice>> baristaQueue;  //holds the seperate queues of baristas
     vector<int> baristaQueueMaxLength;
+
+public:
 
     StarbucksModel2(const string &inputFile, const string &outputFile) : Starbucks(inputFile, outputFile) {
 
         int baristaNo=baristas.size();
+
         for(int i=0;i<baristaNo;i++){
             baristaQueue.emplace_back(priority_queue<Order,vector<Order>,OrderByPrice>());
             baristaQueueMaxLength.emplace_back(0);
@@ -16,14 +19,15 @@ public:
 
     }
 
-    void simulate(){
+
+    void simulate() override {
 
         int n=cashiers.size();
         int m=turnarnoundTime.size();
 
         while(!eventQueue.empty()){
             Order event = eventQueue.top();
-            event.baristaNo=event.cashierNo/3;
+            event.baristaNo=event.cashierNo/3;  //cashiers are fixed
             eventQueue.pop();
             execute(event);
         }
@@ -32,7 +36,9 @@ public:
 
     }
 
-    void write(int n, int m){
+protected:
+
+    void write(int n, int m) override {
         ofstream writer(outputFile,ios::app);
 
         writer<<fixed<<setprecision(2);
@@ -57,7 +63,7 @@ public:
         writer.close();
     }
 
-    void execute(Order& order) {
+    void execute(Order& order) override {
         simulationTime=order.nextEventTime;
         if(!order.arrived){
             arrive(order);
@@ -73,7 +79,7 @@ public:
 
     }
 
-    void order(Order& order){
+    void order(Order& order) override {
 
         if(cashierQueue.empty()){
             cashiersFull=false;
@@ -105,7 +111,7 @@ public:
 
     }
 
-    void exit(Order& order){
+    void exit(Order& order) override {
 
         if(baristaQueue[order.cashierNo/3].empty()){
             baristas[order.cashierNo/3].free=true;
